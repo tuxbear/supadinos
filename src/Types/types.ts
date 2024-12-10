@@ -10,5 +10,12 @@ export interface FormField {
   export interface CustomFormProps {
     fields: FormField[];
     onSubmit: (data: any) => void;
+    onChange?: (data: any) => void;
     submitButtonText?: string;
   }
+  
+  export interface FormData {
+    email: string;
+    password: string;
+    repeatPassword: string;
+}
