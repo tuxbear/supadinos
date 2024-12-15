@@ -3,8 +3,9 @@ import { StyleSheet, Text, SafeAreaView } from 'react-native';
 import { useForm } from 'react-hook-form';
 import CustomForm from '../Components/Forms/FormInput';
 import { FormData, FormField } from '../Types/types';
+import supabase from '@config/supabase';
 
-const SignUpScreen = () => {
+const SignUpScreen = ({navigation}) => {
     const { control, handleSubmit, watch } = useForm<FormData>();
     const [loading, setLoading] = React.useState(false);
     const [isPasswordMatch, setIsPasswordMatch] = React.useState(true);
@@ -15,7 +16,21 @@ const SignUpScreen = () => {
             return;
         }
         setIsPasswordMatch(true);
-        // Handle form submission here
+        sendDataToSupabase(data);
+    };
+    const sendDataToSupabase = async (data: FormData) => {
+        try {
+            setLoading(true);
+            await supabase.auth.signUp({
+                email: data.email,
+                password: data.password,
+            });
+            navigation.navigate('SignInScreen', { email: data.email , password: data.password });
+        } catch (error) {
+            console.log('error', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const formFields: FormField[] = [
@@ -54,6 +69,10 @@ const SignUpScreen = () => {
             {!isPasswordMatch && (
                 <Text style={styles.errorText}>Passwords do not match!</Text>
             )}
+            <Text style={styles.smallText} >
+                Already have an account?{' '}
+                <Text  onPress={() => navigation.navigate('SignInScreen')} style={styles.smallTextBlue}>Sign In</Text>
+            </Text>
         </SafeAreaView>
     );
 };
@@ -63,6 +82,14 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 16,
         backgroundColor: '#fff',
+    },
+    smallText: {
+        fontSize: 14,
+        marginTop: 8,
+    },
+    smallTextBlue: {
+        color: 'blue',
+        textDecorationLine: 'underline',
     },
     header: {
         fontSize: 24,

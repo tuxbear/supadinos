@@ -3,6 +3,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import SignUpScreen from "@screens/SignUpScreen";
 import SplashScreen from "@screens/SplashScreen";
+import SignInScreen from "@screens/SignInScreen";
 
 const Stack = createStackNavigator();
 
@@ -17,6 +18,7 @@ const MainNavigator = () => {
                 gestureEnabled: false,
                 }}>
                 <Stack.Screen name="SignUpScreen" component={SignUpScreen} />
+                <Stack.Screen name="SignInScreen" component={SignInScreen} />
                 <Stack.Screen name="SplashScreen" component={SplashScreen} />
             </Stack.Navigator>
         </NavigationContainer>
