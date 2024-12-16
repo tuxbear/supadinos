@@ -27,7 +27,6 @@ const CustomForm = ({
   submitButtonText = 'Submit',
   disabled = false 
 }: CustomFormProps) => {
-  // Remove the useForm hook since we're receiving control from parent
   const isButtonDisabled = disabled;
 
   return (
