@@ -5,6 +5,7 @@ import SignUpScreen from "@screens/SignUpScreen";
 import SplashScreen from "@screens/SplashScreen";
 import SignInScreen from "@screens/SignInScreen";
 import HomeScreen from "@screens/HomeScreen";
+import VerificationScreen from "@screens/VerificationScreen";
 
 const Stack = createStackNavigator();
 
@@ -22,6 +23,7 @@ const MainNavigator = () => {
                 <Stack.Screen name="SignInScreen" component={SignInScreen} />
                 <Stack.Screen name="SplashScreen" component={SplashScreen} />
                 <Stack.Screen name="HomeScreen" component={HomeScreen} />
+                <Stack.Screen name="VerificationScreen" component={VerificationScreen} />
             </Stack.Navigator>
         </NavigationContainer>
     );

@@ -72,12 +72,12 @@ const SignInScreen = ({ navigation }) => {
         disabled={loading}
       />
       <Text style={styles.smallText}>
-        Already have an account?{' '}
+        Don't have an account?{' '}
         <Text 
-          onPress={() => navigation.navigate('SignInScreen')} 
+          onPress={() => navigation.navigate('SignUpScreen')} 
           style={styles.smallTextBlue}
         >
-          Sign In
+          Sign Up
         </Text>
       </Text>
     </SafeAreaView>

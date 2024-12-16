@@ -4,6 +4,7 @@ import { set, useForm } from 'react-hook-form';
 import CustomForm from '../Components/Forms/FormInput';
 import { FormData, FormField } from '../Types/types';
 import supabase from '@config/supabase';
+import { callEmailVerifyFunction } from '@hooks/callEmailVerifyFunction';
 
 const SignUpScreen = ({ navigation }) => {
   const { control, handleSubmit, watch } = useForm<FormData>({
@@ -24,6 +25,7 @@ const SignUpScreen = ({ navigation }) => {
   useEffect(() => {
     if (password && repeatPassword) {
       setIsPasswordMatch(password === repeatPassword);
+      setLoading(false);
     }
   }, [password, repeatPassword]);
 
@@ -33,28 +35,22 @@ const SignUpScreen = ({ navigation }) => {
       return;
     }
     setIsPasswordMatch(true);
-    await sendDataToSupabase(data);
-  };
-
-  const sendDataToSupabase = async (data: FormData) => {
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
       });
-      
       if (error) throw error;
-      
-      navigation.navigate('SignInScreen', { 
-        email: data.email, 
-        password: data.password 
+      await callEmailVerifyFunction(data.email, (verificationCode) => {
+        navigation.navigate('VerificationScreen', {
+          email: data.email,
+          password: data.password,
+          verificationCode: verificationCode
+        });
       });
     } catch (error) {
-      console.error('Signup error:', error);
-      Alert.alert('Error signing up', error.message);
-    } finally {
-      setLoading(false);
+      Alert.alert('Error sending verification email', error.message);
+      return;
     }
   };
 
