@@ -1,14 +1,13 @@
 import supabase from '@config/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 const HomeScreen = () => {
     const [userUuid, setUserUuid] = useState('');
     useEffect(() => {
-        supabase.auth.getUser().then((user) => setUserUuid(user.data.user.id));
-        supabase.from('user_profile').select().then(({ data, error }) => {
-            console.log('data', data);
-            console.log('error', error);
+        AsyncStorage.getItem('userUuid', (err, result) => {
+            result ? setUserUuid(result) : setUserUuid('');
         });
     }, []);
     return (

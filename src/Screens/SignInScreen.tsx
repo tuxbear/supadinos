@@ -4,6 +4,7 @@ import { set, useForm } from 'react-hook-form';
 import CustomForm from '../Components/Forms/FormInput';
 import { FormData, FormField } from '../Types/types';
 import supabase from '@config/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SignInScreen = ({ navigation }) => {
   const { control, handleSubmit, watch } = useForm<FormData>({
@@ -27,7 +28,8 @@ const SignInScreen = ({ navigation }) => {
       setLoading(false);
     } else {
       console.log('Sign in successful', data);
-      navigation.navigate('HomeScreen');
+      AsyncStorage.setItem('userUuid', (await supabase.auth.getUser()).data.user.id || '');
+      navigation.replace('HomeScreen');
       setLoading(false);
     }
   };
