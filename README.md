@@ -90,9 +90,10 @@ This starter kit is licensed under the [MIT License](https://opensource.org/lice
 We ❤️ contributions! Follow these steps to get involved:  
 
 1️⃣ Fork the repository 🍴  
-2️⃣ Create a new branch 🌿  
-3️⃣ Make your changes ✍️  
-4️⃣ Commit your changes 📦  
+2️⃣ Create a new branch 🌿
+3️⃣ Create an issue in the [Project](https://github.com/users/Jaseyacey/projects/4) then use the issue name as the 🌿 name  
+4️⃣ Make your changes ✍️  
+5️⃣ Commit your changes 📦
 5️⃣ Push your branch 🚢  
 6️⃣ Open a pull request 🚀  
 7️⃣ Wait for review and merge! 🎉  
