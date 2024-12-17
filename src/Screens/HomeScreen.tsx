@@ -1,9 +1,9 @@
-import supabase from '@config/supabase';
+import Button from '@components/Buttons/Button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-const HomeScreen = () => {
+const HomeScreen = ({navigation}) => {
     const [userUuid, setUserUuid] = useState('');
     useEffect(() => {
         AsyncStorage.getItem('userUuid', (err, result) => {
@@ -13,7 +13,12 @@ const HomeScreen = () => {
     return (
         <View style={styles.container}>
             <Text style={styles.text}>Home Screen</Text>
-            <Text>User UUID: {userUuid}</Text>
+            <Button 
+                title="Button Examples"
+                variant="primary"
+                size="small"
+                onPress={() => navigation.navigate('ButtonExamples')}
+            />
         </View>
     );
 };
