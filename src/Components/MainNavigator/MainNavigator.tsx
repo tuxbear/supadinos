@@ -6,6 +6,7 @@ import SplashScreen from "@screens/SplashScreen";
 import SignInScreen from "@screens/SignInScreen";
 import HomeScreen from "@screens/HomeScreen";
 import VerificationScreen from "@screens/VerificationScreen";
+import ChangePasswordScreen from "@screens/ChangePasswordScreen";
 import ButtonExamples from "@screens/ButtonExamples";
 import supabase from "@config/supabase";
 import { Session } from "@supabase/supabase-js";
@@ -48,6 +49,7 @@ const MainNavigator = () => {
             <Stack.Screen name="HomeScreen" component={HomeScreen} />
             <Stack.Screen name="VerificationScreen" component={VerificationScreen} />
             <Stack.Screen name="ButtonExamples" component={ButtonExamples} />
+            <Stack.Screen name="ChangePasswordScreen" component={ChangePasswordScreen} />
           </>
         ) : (
           <>
