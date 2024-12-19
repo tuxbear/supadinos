@@ -6,14 +6,39 @@ type RootStackParamList = {
 };
 
 export interface FormField {
-    name: string;
-    label: string;
-    placeholder?: string;
-    rules?: object;
-    secureTextEntry?: boolean;
-    keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
-  }
+  name: string;
+  label: string;
+  placeholder: string;
+  rules: {
+    required: string | boolean;
+    pattern?: {
+      value: RegExp;
+      message: string;
+    };
+    validate?: (value: string, formValues?: Record<string, any>) => boolean | string;
+    minLength?: {
+      value: number;
+      message: string;
+    };
+    maxLength?: {
+      value: number;
+      message: string;
+    };
+  };
+  keyboardType?: 'email-address' | 'default' | 'numeric' | 'phone-pad';
+  secureTextEntry?: boolean;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoComplete?: 'off' | 'email' | 'password' | 'name' | 'tel';
+}
   
+export interface ForgotPasswordForm {
+  currentPassword: string;
+  email: string;
+  newPassword: string;
+  confirmPassword: string;
+  secureTextEntry?: boolean;
+}
+
   export interface CustomFormProps {
     fields: FormField[];
     onSubmit: (data: any) => void;

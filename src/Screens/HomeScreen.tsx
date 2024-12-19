@@ -19,6 +19,12 @@ const HomeScreen = ({navigation}) => {
                 size="small"
                 onPress={() => navigation.navigate('ButtonExamples')}
             />
+        <Button 
+            title="Change Password"
+            onPress={() => {navigation.navigate('ChangePasswordScreen')}}
+            variant="secondary"
+            size="small"
+        />
         </View>
     );
 };
