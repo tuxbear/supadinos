@@ -10,7 +10,12 @@ import ChangePasswordScreen from "@screens/ChangePasswordScreen";
 import ButtonExamples from "@screens/ButtonExamples";
 import supabase from "@config/supabase";
 import { Session } from "@supabase/supabase-js";
-
+import GamesListScreen from '@screens/GamesListScreen';
+import CreateGameScreen from '@screens/CreateGameScreen';
+import GameRoundScreen from '@screens/GameRoundScreen';
+import FriendsScreen from '@screens/FriendsScreen';
+import ProfileScreen from '@screens/ProfileScreen';
+import SettingsScreen from '@screens/SettingsScreen';
 
 const Stack = createStackNavigator();
 
@@ -33,7 +38,6 @@ const MainNavigator = () => {
     };
   }, []);
 
-
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -50,6 +54,12 @@ const MainNavigator = () => {
             <Stack.Screen name="VerificationScreen" component={VerificationScreen} />
             <Stack.Screen name="ButtonExamples" component={ButtonExamples} />
             <Stack.Screen name="ChangePasswordScreen" component={ChangePasswordScreen} />
+            <Stack.Screen name="Friends" component={FriendsScreen} options={{ headerShown: true, title: 'My Friends' }} />
+            <Stack.Screen name="GamesList" component={GamesListScreen} options={{ headerShown: true, title: 'My Games' }} />
+            <Stack.Screen name="CreateGame" component={CreateGameScreen} options={{ headerShown: true, title: 'Create New Game' }} />
+            <Stack.Screen name="GameRound" component={GameRoundScreen} options={{ headerShown: true, title: 'Game Round' }} />
+            <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: true }} />
+            <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: true }} />
           </>
         ) : (
           <>
