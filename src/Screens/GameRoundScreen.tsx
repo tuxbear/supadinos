@@ -83,6 +83,19 @@ interface GameState {
     targets: Target[];
     walls: Wall[];
   };
+  previous_rounds?: {
+    id: string;
+    round_number: number;
+    winner_username: string;
+    completed_at: string;
+  }[];
+}
+
+interface PlayerMoves {
+  player_username: string;
+  player_avatar_url: string | null;
+  moves: Move[];
+  time_taken: number;
 }
 
 const GameRoundScreen = () => {
@@ -98,6 +111,16 @@ const GameRoundScreen = () => {
   const [timer, setTimer] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const gameStartedRef = useRef(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [replayVisible, setReplayVisible] = useState(false);
+  const [selectedRound, setSelectedRound] = useState<string | null>(null);
+  const [playerMoves, setPlayerMoves] = useState<PlayerMoves[]>([]);
+  const [replayIndex, setReplayIndex] = useState(0);
+  const [replaySpeed, setReplaySpeed] = useState(1);
+  const [replayTimer, setReplayTimer] = useState<NodeJS.Timeout | null>(null);
+  const [replayingMoves, setReplayingMoves] = useState<Move[]>([]);
+  const [currentReplayMove, setCurrentReplayMove] = useState<number>(0);
+  const [replayPaused, setReplayPaused] = useState(false);
 
   useEffect(() => {
     // Load initial game state
@@ -471,6 +494,364 @@ const GameRoundScreen = () => {
     );
   };
 
+  // Function to fetch moves for a specific round
+  const fetchRoundMoves = async (roundId: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('moves')
+        .select(`
+          id,
+          participant_id,
+          robot_color,
+          from_x,
+          from_y,
+          to_x,
+          to_y,
+          move_number,
+          created_at,
+          game_participants:participant_id (
+            profiles:profile_id (username, avatar_url)
+          )
+        `)
+        .eq('round_id', roundId)
+        .order('participant_id')
+        .order('move_number');
+
+      if (error) {
+        throw error;
+      }
+
+      // Group moves by player
+      const movesByPlayer: Record<string, PlayerMoves> = {};
+      
+      data.forEach((move: any) => {
+        const participantId = move.participant_id;
+        const username = move.game_participants.profiles.username;
+        const avatarUrl = move.game_participants.profiles.avatar_url;
+        
+        if (!movesByPlayer[participantId]) {
+          movesByPlayer[participantId] = {
+            player_username: username,
+            player_avatar_url: avatarUrl,
+            moves: [],
+            time_taken: 0 // We'll calculate this later if time data is available
+          };
+        }
+        
+        movesByPlayer[participantId].moves.push({
+          robotColor: move.robot_color,
+          fromX: move.from_x,
+          fromY: move.from_y,
+          toX: move.to_x,
+          toY: move.to_y
+        });
+      });
+      
+      setPlayerMoves(Object.values(movesByPlayer));
+      
+      // If there are moves to replay, set up the first player's moves
+      if (Object.values(movesByPlayer).length > 0) {
+        setReplayingMoves(Object.values(movesByPlayer)[0].moves);
+        setCurrentReplayMove(0);
+      }
+    } catch (error) {
+      console.error('Error fetching round moves:', error);
+      Alert.alert('Error', 'Failed to fetch moves for this round');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to load previous rounds data
+  const fetchPreviousRounds = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('rounds')
+        .select(`
+          id,
+          round_number,
+          completed_at,
+          game_participants:winner_id (
+            profiles:profile_id (username)
+          )
+        `)
+        .eq('game_id', gameId)
+        .not('completed_at', 'is', null)
+        .order('round_number');
+
+      if (error) {
+        throw error;
+      }
+
+      // Format the data
+      const previousRounds = data.map((round: any) => ({
+        id: round.id,
+        round_number: round.round_number,
+        winner_username: round.game_participants?.profiles?.username || 'Unknown',
+        completed_at: round.completed_at
+      }));
+
+      // Update the game state with previous rounds
+      if (gameState) {
+        setGameState({
+          ...gameState,
+          previous_rounds: previousRounds
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching previous rounds:', error);
+      Alert.alert('Error', 'Failed to fetch previous rounds');
+    }
+  };
+
+  // Function to toggle the menu
+  const toggleMenu = () => {
+    if (!menuVisible) {
+      // Fetch previous rounds data when opening the menu
+      fetchPreviousRounds();
+    }
+    setMenuVisible(!menuVisible);
+    // Close replay mode if closing menu
+    if (menuVisible && replayVisible) {
+      exitReplayMode();
+    }
+  };
+
+  // Function to select a round for replay
+  const selectRoundForReplay = (roundId: string) => {
+    setSelectedRound(roundId);
+    fetchRoundMoves(roundId);
+    setReplayVisible(true);
+    setMenuVisible(false);
+  };
+
+  // Function to start replay
+  const startReplay = (playerIndex: number = 0) => {
+    // Reset any existing replay timer
+    if (replayTimer) {
+      clearInterval(replayTimer);
+    }
+
+    // If there are players with moves
+    if (playerMoves.length > 0) {
+      // Select the player's moves to replay
+      setReplayingMoves(playerMoves[playerIndex].moves);
+      setCurrentReplayMove(0);
+      setReplayPaused(false);
+
+      // Create a copy of game state to modify during replay
+      if (gameState && gameState.current_board) {
+        // Start the replay timer
+        const timer = setInterval(() => {
+          setCurrentReplayMove(prev => {
+            if (prev < replayingMoves.length - 1) {
+              return prev + 1;
+            } else {
+              // Stop when we reach the end
+              if (replayTimer) {
+                clearInterval(replayTimer);
+              }
+              return prev;
+            }
+          });
+        }, 1000 / replaySpeed);
+
+        setReplayTimer(timer);
+      }
+    }
+  };
+
+  // Function to pause/resume replay
+  const toggleReplayPause = () => {
+    if (replayPaused) {
+      // Resume replay
+      startReplay(playerMoves.findIndex(p => 
+        p.moves.length > 0 && p.moves[0] === replayingMoves[0]));
+      setReplayPaused(false);
+    } else {
+      // Pause replay
+      if (replayTimer) {
+        clearInterval(replayTimer);
+        setReplayTimer(null);
+      }
+      setReplayPaused(true);
+    }
+  };
+
+  // Function to change replay speed
+  const changeReplaySpeed = () => {
+    // Cycle through speeds: 1x, 2x, 4x
+    const newSpeed = replaySpeed === 1 ? 2 : replaySpeed === 2 ? 4 : 1;
+    setReplaySpeed(newSpeed);
+    
+    // Restart replay with new speed if not paused
+    if (!replayPaused && replayTimer) {
+      clearInterval(replayTimer);
+      startReplay(playerMoves.findIndex(p => 
+        p.moves.length > 0 && p.moves[0] === replayingMoves[0]));
+    }
+  };
+
+  // Function to exit replay mode
+  const exitReplayMode = () => {
+    if (replayTimer) {
+      clearInterval(replayTimer);
+    }
+    setReplayVisible(false);
+    setSelectedRound(null);
+    setPlayerMoves([]);
+    setReplayingMoves([]);
+    setCurrentReplayMove(0);
+    // Reset the board state
+    loadGameState();
+  };
+
+  // Effect to update board with replay move
+  useEffect(() => {
+    if (replayVisible && replayingMoves.length > 0 && currentReplayMove < replayingMoves.length) {
+      // Update board with the current move in the replay
+      const move = replayingMoves[currentReplayMove];
+      
+      // Find the robot with the matching color
+      if (gameState && gameState.current_board) {
+        const updatedRobots = gameState.current_board.robots.map(robot => {
+          if (robot.color === move.robotColor) {
+            // Update the robot position
+            return { ...robot, x: move.toX, y: move.toY };
+          }
+          return robot;
+        });
+
+        // Update the game state with the new robot positions
+        setGameState({
+          ...gameState,
+          current_board: {
+            ...gameState.current_board,
+            robots: updatedRobots
+          }
+        });
+      }
+    }
+  }, [currentReplayMove, replayingMoves]);
+
+  // Render menu overlay
+  const renderMenu = () => {
+    if (!menuVisible) return null;
+
+    return (
+      <View style={styles.menuOverlay}>
+        <View style={styles.menuContent}>
+          <Text style={styles.menuTitle}>Game Menu</Text>
+          
+          <Text style={styles.menuSectionTitle}>Previous Rounds</Text>
+          {gameState?.previous_rounds && gameState.previous_rounds.length > 0 ? (
+            <ScrollView style={styles.roundsList}>
+              {gameState.previous_rounds.map(round => (
+                <TouchableOpacity
+                  key={round.id}
+                  style={styles.roundItem}
+                  onPress={() => selectRoundForReplay(round.id)}
+                >
+                  <Text style={styles.roundItemText}>
+                    Round {round.round_number} - Winner: {round.winner_username}
+                  </Text>
+                  <Ionicons name="play-circle" size={24} color="#5cb85c" />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : (
+            <Text style={styles.emptyText}>No previous rounds yet</Text>
+          )}
+          
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={toggleMenu}
+          >
+            <Text style={styles.menuButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  // Render replay overlay
+  const renderReplay = () => {
+    if (!replayVisible) return null;
+
+    return (
+      <View style={styles.replayOverlay}>
+        <View style={styles.replayHeader}>
+          <Text style={styles.replayTitle}>Replay Mode</Text>
+          {playerMoves.length > 0 && (
+            <View style={styles.playerSelector}>
+              {playerMoves.map((player, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.playerButton,
+                    replayingMoves === player.moves && styles.playerButtonActive
+                  ]}
+                  onPress={() => {
+                    setReplayingMoves(player.moves);
+                    setCurrentReplayMove(0);
+                    setReplayPaused(true);
+                    if (replayTimer) {
+                      clearInterval(replayTimer);
+                      setReplayTimer(null);
+                    }
+                  }}
+                >
+                  <Text style={styles.playerButtonText}>{player.player_username}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+        
+        <View style={styles.replayControls}>
+          <TouchableOpacity
+            style={styles.replayButton}
+            onPress={toggleReplayPause}
+          >
+            <Ionicons 
+              name={replayPaused ? "play" : "pause"} 
+              size={20} 
+              color="white" 
+            />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.replayButton}
+            onPress={changeReplaySpeed}
+          >
+            <Text style={styles.replayButtonText}>{replaySpeed}x</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.replayButton}
+            onPress={exitReplayMode}
+          >
+            <Ionicons name="close" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+        
+        <View style={styles.replayProgress}>
+          <Text style={styles.replayProgressText}>
+            Move {currentReplayMove + 1} of {replayingMoves.length}
+          </Text>
+          {replayingMoves.length > 0 && currentReplayMove < replayingMoves.length && (
+            <Text style={styles.moveDetails}>
+              {replayingMoves[currentReplayMove].robotColor} robot: 
+              ({replayingMoves[currentReplayMove].fromX}, {replayingMoves[currentReplayMove].fromY}) → 
+              ({replayingMoves[currentReplayMove].toX}, {replayingMoves[currentReplayMove].toY})
+            </Text>
+          )}
+        </View>
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -485,11 +866,17 @@ const GameRoundScreen = () => {
         <Text style={styles.title}>
           {gameState?.game.name} - Round {gameState?.game.current_round}
         </Text>
-        <Text style={styles.timer}>Time: {formatTime(timer)}</Text>
+        <TouchableOpacity
+          style={styles.menuButton}
+          onPress={toggleMenu}
+        >
+          <Ionicons name="menu" size={24} color="#333" />
+        </TouchableOpacity>
       </View>
       
       <View style={styles.gameInfo}>
         <Text style={styles.movesText}>Moves: {moves.length}</Text>
+        <Text style={styles.timer}>Time: {formatTime(timer)}</Text>
         {selectedRobot && (
           <View style={styles.selectedRobotInfo}>
             <Text>Selected: </Text>
@@ -505,51 +892,61 @@ const GameRoundScreen = () => {
       
       {renderBoard()}
       
-      <View style={styles.controls}>
-        <TouchableOpacity
-          style={styles.controlButton}
-          onPress={() => setSelectedRobot(null)}
-        >
-          <Ionicons name="close-circle" size={24} color="#d9534f" />
-          <Text style={styles.controlButtonText}>Deselect</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={styles.controlButton}
-          onPress={resetRound}
-        >
-          <Ionicons name="refresh" size={24} color="#f0ad4e" />
-          <Text style={styles.controlButtonText}>Reset</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.controlButton, submitting && styles.disabledButton]}
-          onPress={submitSolution}
-          disabled={submitting || moves.length === 0}
-        >
-          <Ionicons name="checkmark-circle" size={24} color="#5cb85c" />
-          <Text style={styles.controlButtonText}>Submit</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Only show game controls if not in replay mode */}
+      {!replayVisible && (
+        <View style={styles.controls}>
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={() => setSelectedRobot(null)}
+          >
+            <Ionicons name="close-circle" size={24} color="#d9534f" />
+            <Text style={styles.controlButtonText}>Deselect</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={resetRound}
+          >
+            <Ionicons name="refresh" size={24} color="#f0ad4e" />
+            <Text style={styles.controlButtonText}>Reset</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.controlButton, submitting && styles.disabledButton]}
+            onPress={submitSolution}
+            disabled={submitting || moves.length === 0}
+          >
+            <Ionicons name="checkmark-circle" size={24} color="#5cb85c" />
+            <Text style={styles.controlButtonText}>Submit</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       
-      <View style={styles.movesContainer}>
-        <Text style={styles.movesTitle}>Move History:</Text>
-        <ScrollView style={styles.movesList}>
-          {moves.map((move, index) => (
-            <View key={index} style={styles.moveItem}>
-              <View
-                style={[
-                  styles.moveRobotIndicator,
-                  { backgroundColor: ROBOT_COLORS[move.robotColor as keyof typeof ROBOT_COLORS] || '#ddd' }
-                ]}
-              />
-              <Text style={styles.moveText}>
-                {index + 1}. ({move.fromX},{move.fromY}) → ({move.toX},{move.toY})
-              </Text>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
+      {/* Only show move history if not in replay mode */}
+      {!replayVisible && (
+        <View style={styles.movesContainer}>
+          <Text style={styles.movesTitle}>Move History:</Text>
+          <ScrollView style={styles.movesList}>
+            {moves.map((move, index) => (
+              <View key={index} style={styles.moveItem}>
+                <View
+                  style={[
+                    styles.moveRobotIndicator,
+                    { backgroundColor: ROBOT_COLORS[move.robotColor as keyof typeof ROBOT_COLORS] || '#ddd' }
+                  ]}
+                />
+                <Text style={styles.moveText}>
+                  {index + 1}. ({move.fromX},{move.fromY}) → ({move.toX},{move.toY})
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+      
+      {/* Render menu and replay overlays */}
+      {renderMenu()}
+      {renderReplay()}
     </View>
   );
 };
@@ -722,6 +1119,148 @@ const styles = StyleSheet.create({
   moveText: {
     fontSize: 14,
     color: '#333',
+  },
+  menuButton: {
+    padding: 8,
+    borderRadius: 4,
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  menuOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  menuContent: {
+    width: '80%',
+    maxHeight: '80%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  menuTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+    color: '#333',
+  },
+  menuSectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#555',
+  },
+  roundsList: {
+    maxHeight: 200,
+    marginBottom: 16,
+  },
+  roundItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  roundItemText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999',
+    padding: 16,
+  },
+  menuButtonText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  replayOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    padding: 16,
+    zIndex: 5,
+  },
+  replayHeader: {
+    marginBottom: 12,
+  },
+  replayTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: 'white',
+    textAlign: 'center',
+  },
+  playerSelector: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    marginBottom: 8,
+  },
+  playerButton: {
+    backgroundColor: '#555',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    marginHorizontal: 4,
+    marginVertical: 4,
+  },
+  playerButtonActive: {
+    backgroundColor: '#4c669f',
+  },
+  playerButtonText: {
+    color: 'white',
+    fontSize: 12,
+  },
+  replayControls: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  replayButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#4c669f',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
+  replayButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  replayProgress: {
+    alignItems: 'center',
+  },
+  replayProgressText: {
+    color: 'white',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  moveDetails: {
+    color: 'white',
+    fontSize: 12,
+    opacity: 0.8,
   },
 });
 
