@@ -44,7 +44,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Create a new table to track each participant's round performance
-CREATE TABLE round_participants (
+CREATE TABLE IF NOT EXISTS round_participants (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   round_id UUID NOT NULL REFERENCES rounds(id) ON DELETE CASCADE,
   participant_id UUID NOT NULL REFERENCES game_participants(id) ON DELETE CASCADE,
@@ -56,21 +56,35 @@ CREATE TABLE round_participants (
   UNIQUE (round_id, participant_id)
 );
 
--- Enable RLS on round_participants
+-- Enable RLS on round_participants if the table was just created
 ALTER TABLE round_participants ENABLE ROW LEVEL SECURITY;
 
--- Round participants policies
-CREATE POLICY "Round participants are viewable by game participants"
-  ON round_participants FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM rounds r
-      JOIN game_participants gp ON gp.game_id = r.game_id
-      JOIN profiles p ON p.id = gp.profile_id
-      WHERE r.id = round_participants.round_id
-      AND p.user_id = auth.uid()
-    )
-  );
+-- Create policy only if it doesn't exist already (using DO block with exception handling)
+DO $$
+BEGIN
+  -- Check if policy already exists
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE tablename = 'round_participants' 
+    AND policyname = 'Round participants are viewable by game participants'
+  ) THEN
+    -- Create the policy if it doesn't exist
+    CREATE POLICY "Round participants are viewable by game participants"
+      ON round_participants FOR SELECT
+      USING (
+        EXISTS (
+          SELECT 1 FROM rounds r
+          JOIN game_participants gp ON gp.game_id = r.game_id
+          JOIN profiles p ON p.id = gp.profile_id
+          WHERE r.id = round_participants.round_id
+          AND p.user_id = auth.uid()
+        )
+      );
+  END IF;
+EXCEPTION
+  WHEN duplicate_object THEN
+    -- Do nothing if policy already exists
+END$$;
 
 -- Function to forfeit a round for the current player
 CREATE OR REPLACE FUNCTION forfeit_round(round_id UUID)
@@ -138,11 +152,22 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create a trigger to check for timeout when a round_participant is updated
-CREATE TRIGGER check_round_timeout_trigger
-AFTER UPDATE ON round_participants
-FOR EACH ROW
-WHEN (NEW.end_time IS NULL AND NEW.has_forfeit = FALSE)
-EXECUTE FUNCTION check_round_timeout();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger 
+    WHERE tgname = 'check_round_timeout_trigger'
+  ) THEN
+    CREATE TRIGGER check_round_timeout_trigger
+    AFTER UPDATE ON round_participants
+    FOR EACH ROW
+    WHEN (NEW.end_time IS NULL AND NEW.has_forfeit = FALSE)
+    EXECUTE FUNCTION check_round_timeout();
+  END IF;
+EXCEPTION
+  WHEN duplicate_object THEN
+    -- Do nothing if trigger already exists
+END$$;
 
 -- Modified function to submit a solution for a round
 CREATE OR REPLACE FUNCTION submit_solution(

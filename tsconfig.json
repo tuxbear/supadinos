@@ -9,12 +9,15 @@
         "src/Hooks/*"
       ],
       "@screens/*": [
-        "src/Screens/*"
+        "src/screens/*"
       ],
       "@config/*": [
         "src/Config/*"
       ]
-    }
+    },
+    "jsx": "react-native",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true
   },
   "extends": "expo/tsconfig.base"
 }

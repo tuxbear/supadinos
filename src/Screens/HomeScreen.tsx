@@ -1,18 +1,36 @@
 import Button from '@components/Buttons/Button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import supabase from '@config/supabase';
 
 const HomeScreen = () => {
     const navigation = useNavigation();
     const [userUuid, setUserUuid] = useState('');
+    const [loading, setLoading] = useState(false);
+
     useEffect(() => {
         AsyncStorage.getItem('userUuid', (err, result) => {
             result ? setUserUuid(result) : setUserUuid('');
         });
     }, []);
+
+    const handleLogout = async () => {
+        setLoading(true);
+        try {
+            await supabase.auth.signOut();
+            await AsyncStorage.removeItem('userUuid');
+            // We don't need to navigate as MainNavigator will handle this when auth state changes
+        } catch (error) {
+            console.error('Error signing out:', error);
+            Alert.alert('Error', 'Failed to sign out');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <View style={styles.container}>
             <View style={styles.header}>
@@ -65,9 +83,8 @@ const HomeScreen = () => {
             <View style={styles.footer}>
                 <TouchableOpacity
                     style={styles.logoutButton}
-                    onPress={() => {
-                        // Implement logout functionality
-                    }}
+                    onPress={handleLogout}
+                    disabled={loading}
                 >
                     <Text style={styles.logoutText}>Logout</Text>
                 </TouchableOpacity>

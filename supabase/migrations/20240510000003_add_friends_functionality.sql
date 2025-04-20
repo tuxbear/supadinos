@@ -37,9 +37,9 @@ CREATE POLICY "Users can update their own friendship status"
     AND status = 'pending'
   );
 
--- Add columns for tracking round timing
-ALTER TABLE rounds ADD COLUMN start_time TIMESTAMP WITH TIME ZONE;
-ALTER TABLE moves ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+-- Add columns for tracking round timing (if they don't exist)
+ALTER TABLE rounds ADD COLUMN IF NOT EXISTS start_time TIMESTAMP WITH TIME ZONE;
+ALTER TABLE moves ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 
 -- Add function to send a friend request
 CREATE OR REPLACE FUNCTION send_friend_request(friend_username TEXT)
