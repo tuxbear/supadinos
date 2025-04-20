@@ -1,4 +1,41 @@
--- Add remaining Row Level Security policies
+-- Add additional Row Level Security policies for games
+
+-- Games policies
+CREATE POLICY "Games are viewable by participants"
+  ON games FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM game_participants
+      WHERE game_participants.game_id = games.id
+      AND game_participants.profile_id IN (
+        SELECT id FROM profiles WHERE user_id = auth.uid()
+      )
+    )
+    OR
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = games.created_by
+      AND profiles.user_id = auth.uid()
+    )
+    OR
+    games.status = 'waiting'
+  );
+
+CREATE POLICY "Users can create games"
+  ON games FOR INSERT
+  WITH CHECK (
+    created_by IN (
+      SELECT id FROM profiles WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Game creator can update game"
+  ON games FOR UPDATE
+  USING (
+    created_by IN (
+      SELECT id FROM profiles WHERE user_id = auth.uid()
+    )
+  );
 
 -- Game participants policies
 CREATE POLICY "Participants are viewable by users in the same game"
