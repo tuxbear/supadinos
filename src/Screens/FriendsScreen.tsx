@@ -19,6 +19,9 @@ interface FriendsData {
   pending_received: Friend[] | null;
 }
 
+// Simple data URI for a default avatar
+const DEFAULT_AVATAR = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyBAMAAADsEZWCAAAAG1BMVEVMaXFBuINBuYNBuYNBuYNBuYNBuYNBuYNBuYMh2jHIAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAQklEQVQ4jWNgQAX8/Azy8vKMxsb//2RkZERn/P8vLy/P+P8/AysDquD/fxgDU+0oA11gdDHRxUYXG11sow6mI4cCALalTUyXAmPKAAAAAElFTkSuQmCC';
+
 const FriendsScreen = () => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
@@ -132,7 +135,7 @@ const FriendsScreen = () => {
       <Avatar
         rounded
         size="medium"
-        source={item.avatar_url ? { uri: item.avatar_url } : require('../../assets/default-avatar.png')}
+        source={item.avatar_url ? { uri: item.avatar_url } : { uri: DEFAULT_AVATAR }}
         containerStyle={styles.avatarContainer}
       />
       <Text style={styles.friendName}>{item.username}</Text>
@@ -144,7 +147,7 @@ const FriendsScreen = () => {
       <Avatar
         rounded
         size="medium"
-        source={item.avatar_url ? { uri: item.avatar_url } : require('../../assets/default-avatar.png')}
+        source={item.avatar_url ? { uri: item.avatar_url } : { uri: DEFAULT_AVATAR }}
         containerStyle={styles.avatarContainer}
       />
       <Text style={styles.friendName}>{item.username}</Text>
@@ -159,7 +162,7 @@ const FriendsScreen = () => {
       <Avatar
         rounded
         size="medium"
-        source={item.avatar_url ? { uri: item.avatar_url } : require('../../assets/default-avatar.png')}
+        source={item.avatar_url ? { uri: item.avatar_url } : { uri: DEFAULT_AVATAR }}
         containerStyle={styles.avatarContainer}
       />
       <Text style={styles.friendName}>{item.username}</Text>

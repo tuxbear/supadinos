@@ -15,6 +15,9 @@ import { Avatar } from 'react-native-elements';
 import supabase from '@config/supabase';
 import { Ionicons } from '@expo/vector-icons';
 
+// Simple data URI for a default avatar
+const DEFAULT_AVATAR = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyBAMAAADsEZWCAAAAG1BMVEVMaXFBuINBuYNBuYNBuYNBuYNBuYNBuYNBuYMh2jHIAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAQklEQVQ4jWNgQAX8/Azy8vKMxsb//2RkZERn/P8vLy/P+P8/AysDquD/fxgDU+0oA11gdDHRxUYXG11sow6mI4cCALalTUyXAmPKAAAAAElFTkSuQmCC';
+
 interface Friend {
   id: string;
   username: string;
@@ -141,7 +144,7 @@ const CreateGameScreen = () => {
       <Avatar
         rounded
         size="medium"
-        source={item.avatar_url ? { uri: item.avatar_url } : require('../../assets/default-avatar.png')}
+        source={item.avatar_url ? { uri: item.avatar_url } : { uri: DEFAULT_AVATAR }}
         containerStyle={styles.avatarContainer}
       />
       <Text style={styles.friendName}>{item.username}</Text>

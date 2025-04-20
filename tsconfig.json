@@ -9,7 +9,7 @@
         "src/Hooks/*"
       ],
       "@screens/*": [
-        "src/screens/*"
+        "src/Screens/*"
       ],
       "@config/*": [
         "src/Config/*"
