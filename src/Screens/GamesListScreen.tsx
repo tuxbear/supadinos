@@ -16,7 +16,6 @@ interface Game {
   id: string;
   name: string;
   status: 'waiting' | 'active' | 'completed';
-  max_players: number;
   max_rounds: number;
   created_at: string;
   current_round: number;
@@ -66,7 +65,6 @@ const GamesListScreen = () => {
           id, 
           name, 
           status, 
-          max_players, 
           max_rounds, 
           created_at,
           profiles:created_by (username),
@@ -88,7 +86,6 @@ const GamesListScreen = () => {
           id: game.id,
           name: game.name,
           status: game.status,
-          max_players: game.max_players,
           max_rounds: game.max_rounds,
           created_at: game.created_at,
           participant_count: game.game_participants.length,
@@ -203,7 +200,7 @@ const GamesListScreen = () => {
         </Text>
         
         <Text style={styles.gameInfo}>
-          Players: {item.participant_count}/{item.max_players}
+          Players: {item.participant_count}
         </Text>
         
         {isActive && (

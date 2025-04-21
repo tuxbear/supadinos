@@ -1,0 +1,9 @@
+---
+description: game logic
+globs: 
+alwaysApply: false
+---
+The app is a game, emulating the board game ricchocet robots.
+Players can invite friends to a multi-round game of Dinos.
+The goal of each round is to be the player who can get the designated dino to the goal square in the least number of dino moves.
+Each round the winner is awareded 1 point for having the least moves. A game is over when all players ahs submitted moves for each round. The winner is the player with the most points across all rounds.

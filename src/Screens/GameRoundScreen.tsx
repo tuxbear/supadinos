@@ -65,7 +65,6 @@ interface GameState {
     id: string;
     name: string;
     status: string;
-    max_players: number;
     max_rounds: number;
     created_at: string;
     current_round: number;

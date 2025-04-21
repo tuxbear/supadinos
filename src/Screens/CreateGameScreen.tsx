@@ -28,7 +28,6 @@ interface Friend {
 const CreateGameScreen = () => {
   const navigation = useNavigation();
   const [gameName, setGameName] = useState('');
-  const [maxPlayers, setMaxPlayers] = useState('6');
   const [maxRounds, setMaxRounds] = useState('10');
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,13 +79,6 @@ const CreateGameScreen = () => {
       return;
     }
 
-    // Validate max players
-    const parsedMaxPlayers = parseInt(maxPlayers);
-    if (isNaN(parsedMaxPlayers) || parsedMaxPlayers < 2 || parsedMaxPlayers > 10) {
-      Alert.alert('Error', 'Max players must be between 2 and 10');
-      return;
-    }
-
     // Validate max rounds
     const parsedMaxRounds = parseInt(maxRounds);
     if (isNaN(parsedMaxRounds) || parsedMaxRounds < 5 || parsedMaxRounds > 15) {
@@ -109,7 +101,6 @@ const CreateGameScreen = () => {
     try {
       const { data, error } = await supabase.rpc('create_game_with_friends', {
         game_name: gameName.trim(),
-        max_players: parsedMaxPlayers,
         max_rounds: parsedMaxRounds,
         friend_ids: selectedFriendIds
       });
@@ -181,28 +172,15 @@ const CreateGameScreen = () => {
         />
       </View>
       
-      <View style={styles.row}>
-        <View style={[styles.formGroup, styles.halfWidth]}>
-          <Text style={styles.label}>Max Players (2-10)</Text>
-          <TextInput
-            style={styles.input}
-            value={maxPlayers}
-            onChangeText={setMaxPlayers}
-            keyboardType="number-pad"
-            maxLength={2}
-          />
-        </View>
-        
-        <View style={[styles.formGroup, styles.halfWidth]}>
-          <Text style={styles.label}>Max Rounds (5-15)</Text>
-          <TextInput
-            style={styles.input}
-            value={maxRounds}
-            onChangeText={setMaxRounds}
-            keyboardType="number-pad"
-            maxLength={2}
-          />
-        </View>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Max Rounds (5-15)</Text>
+        <TextInput
+          style={styles.input}
+          value={maxRounds}
+          onChangeText={setMaxRounds}
+          keyboardType="number-pad"
+          maxLength={2}
+        />
       </View>
       
       <View style={styles.formGroup}>
@@ -261,13 +239,6 @@ const styles = StyleSheet.create({
   },
   formGroup: {
     marginBottom: 20,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  halfWidth: {
-    width: '48%',
   },
   label: {
     fontSize: 16,
