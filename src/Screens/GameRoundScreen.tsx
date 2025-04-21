@@ -12,6 +12,8 @@ import {
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import supabase from '@config/supabase';
+import { RootStackParamList } from '../Types/navigation';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 // Define the screen dimensions
 const { width } = Dimensions.get('window');
@@ -98,8 +100,8 @@ interface PlayerMoves {
 }
 
 const GameRoundScreen = () => {
-  const route = useRoute<RouteProp<Record<string, RoundParams>, string>>();
-  const navigation = useNavigation();
+  const route = useRoute<RouteProp<RootStackParamList, 'GameRound'>>();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { gameId, roundId } = route.params;
   
   const [loading, setLoading] = useState(true);
@@ -396,7 +398,7 @@ const GameRoundScreen = () => {
       }
 
       // Navigate back to the game list or next round
-      navigation.navigate('GamesList' as never);
+      navigation.navigate('GamesList');
     } catch (error: any) {
       console.error('Error submitting solution:', error);
       Alert.alert('Error', error.message || 'Failed to submit solution');

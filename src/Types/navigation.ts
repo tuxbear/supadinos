@@ -11,5 +11,6 @@ export type RootStackParamList = {
   VerificationScreen: { email: string };
   ButtonExamples: undefined;
   ChangePasswordScreen: undefined;
-  GameRound: undefined;
+  GameRound: { gameId: string; roundId: string };
+  GameDetails: { gameId: string };
 }; 

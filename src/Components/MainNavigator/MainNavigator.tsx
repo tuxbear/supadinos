@@ -16,6 +16,7 @@ import GameRoundScreen from '@screens/GameRoundScreen';
 import FriendsScreen from '@screens/FriendsScreen';
 import ProfileScreen from '@screens/ProfileScreen';
 import SettingsScreen from '@screens/SettingsScreen';
+import GameDetailsScreen from '@screens/GameDetailsScreen';
 
 const Stack = createStackNavigator();
 
@@ -57,6 +58,7 @@ const MainNavigator = () => {
             <Stack.Screen name="GamesList" component={GamesListScreen} options={{ headerShown: true, title: 'My Games' }} />
             <Stack.Screen name="CreateGame" component={CreateGameScreen} options={{ headerShown: true, title: 'Create New Game' }} />
             <Stack.Screen name="GameRound" component={GameRoundScreen} options={{ headerShown: true, title: 'Game Round' }} />
+            <Stack.Screen name="GameDetails" component={GameDetailsScreen} options={{ headerShown: true, title: 'Game Details' }} />
             <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: true }} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: true }} />
           </>

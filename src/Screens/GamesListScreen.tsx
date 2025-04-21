@@ -11,6 +11,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import supabase from '@config/supabase';
+import { RootStackParamList } from '../Types/navigation';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 interface Game {
   id: string;
@@ -30,7 +32,7 @@ interface Round {
 }
 
 const GamesListScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [loading, setLoading] = useState(true);
   const [activeGames, setActiveGames] = useState<Game[]>([]);
   const [waitingGames, setWaitingGames] = useState<Game[]>([]);
@@ -140,34 +142,40 @@ const GamesListScreen = () => {
     }
   };
 
-  const goToGameRound = (gameId: string) => {
+  const goToGameDetails = (gameId: string) => {
+    navigation.navigate('GameDetails', {
+      gameId
+    });
+  };
+
+  const goToGameRound = async (gameId: string) => {
     // Get the current round for this game
     const game = activeGames.find(g => g.id === gameId);
     if (!game) return;
 
-    // Find the current round ID
-    supabase
-      .from('rounds')
-      .select('id')
-      .eq('game_id', gameId)
-      .eq('round_number', game.current_round)
-      .single()
-      .then(({ data, error }) => {
-        if (error) {
-          throw error;
-        }
+    try {
+      // Find the current round ID
+      const { data, error } = await supabase
+        .from('rounds')
+        .select('id')
+        .eq('game_id', gameId)
+        .eq('round_number', game.current_round)
+        .single();
 
-        if (data) {
-          navigation.navigate('GameRound' as never, {
-            gameId,
-            roundId: data.id
-          } as never);
-        }
-      })
-      .catch(error => {
-        console.error('Error getting round:', error);
-        Alert.alert('Error', 'Failed to get round information');
-      });
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        navigation.navigate('GameRound', {
+          gameId,
+          roundId: data.id
+        });
+      }
+    } catch (error) {
+      console.error('Error getting round:', error);
+      Alert.alert('Error', 'Failed to get round information');
+    }
   };
 
   const renderGameItem = ({ item, section }: { item: Game; section: { title: string } }) => {
@@ -230,12 +238,32 @@ const GamesListScreen = () => {
         )}
         
         {isActive && (
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.playButton]}
+              onPress={() => goToGameRound(item.id)}
+            >
+              <Ionicons name="game-controller" size={20} color="white" />
+              <Text style={styles.actionButtonText}>Play</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.actionButton, styles.detailsButton]}
+              onPress={() => goToGameDetails(item.id)}
+            >
+              <Ionicons name="information-circle" size={20} color="white" />
+              <Text style={styles.actionButtonText}>Details</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        
+        {isCompleted && (
           <TouchableOpacity
-            style={[styles.actionButton, styles.playButton]}
-            onPress={() => goToGameRound(item.id)}
+            style={[styles.actionButton, styles.detailsButton]}
+            onPress={() => goToGameDetails(item.id)}
           >
-            <Ionicons name="game-controller" size={20} color="white" />
-            <Text style={styles.actionButtonText}>Play</Text>
+            <Ionicons name="information-circle" size={20} color="white" />
+            <Text style={styles.actionButtonText}>Game Summary</Text>
           </TouchableOpacity>
         )}
       </TouchableOpacity>
@@ -247,7 +275,7 @@ const GamesListScreen = () => {
   );
 
   const goToCreateGame = () => {
-    navigation.navigate('CreateGame' as never);
+    navigation.navigate('CreateGame');
   };
 
   if (loading) {
@@ -425,6 +453,9 @@ const styles = StyleSheet.create({
   playButton: {
     backgroundColor: '#5cb85c',
     marginTop: 8,
+  },
+  detailsButton: {
+    backgroundColor: '#5bc0de',
   },
   emptyText: {
     textAlign: 'center',
