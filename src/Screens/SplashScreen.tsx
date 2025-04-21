@@ -43,7 +43,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ navigation }) => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Ricochet Robots</Text>
+            <Text style={styles.title}>Desperate Dinos</Text>
             <ActivityIndicator size="large" color="#0066CC" />
             <Text style={styles.loadingText}>Loading...</Text>
         </View>

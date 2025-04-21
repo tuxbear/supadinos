@@ -36,7 +36,7 @@ const HomeScreen = () => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.title}>Welcome to Ricochet Robots</Text>
+                <Text style={styles.title}>Welcome to Desperate Dinos</Text>
                 <Text style={styles.subtitle}>Challenge your friends in this exciting puzzle game!</Text>
             </View>
 

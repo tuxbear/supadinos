@@ -1,6 +1,6 @@
-# Ricochet Robots Game Database Schema
+# Desperate Dinos Game Database Schema
 
-This directory contains Supabase migrations for setting up the database schema for a Ricochet Robots inspired game.
+This directory contains Supabase migrations for setting up the database schema for a Desperate Dinos inspired game.
 
 ## Database Schema
 
@@ -62,9 +62,9 @@ To apply these migrations to your Supabase project:
    supabase db push
    ```
 
-## Notes on the Ricochet Robots Game Model
+## Notes on the Desperate Dinos Game Model
 
-This schema models a digital version of the Ricochet Robots board game:
+This schema models a digital version of the Desperate Dinos board game:
 
 - The game board consists of a grid with walls
 - Players control robots that move in straight lines until they hit a wall or another robot

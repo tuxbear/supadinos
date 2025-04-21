@@ -280,7 +280,7 @@ const GameRoundScreen = () => {
   ) => {
     // Implementation of robot movement logic
     // This is a simplified version - in a real game, you'd need to implement
-    // the exact movement rules of Ricochet Robots
+    // the exact movement rules of Desperate Dinos
 
     // Determine direction of movement
     let dirX = 0;

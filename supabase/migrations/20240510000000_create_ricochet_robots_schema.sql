@@ -1,4 +1,4 @@
--- Create schema for ricochet robots game
+-- Create schema for Desperate Dinos game
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
