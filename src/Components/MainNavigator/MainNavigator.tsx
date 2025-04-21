@@ -17,6 +17,8 @@ import FriendsScreen from '@screens/FriendsScreen';
 import ProfileScreen from '@screens/ProfileScreen';
 import SettingsScreen from '@screens/SettingsScreen';
 import GameDetailsScreen from '@screens/GameDetailsScreen';
+import NotificationIcon from '../NotificationIcon/NotificationIcon';
+import { View } from 'react-native';
 
 const Stack = createStackNavigator();
 
@@ -46,6 +48,11 @@ const MainNavigator = () => {
         screenOptions={{
           headerShown: false,
           gestureEnabled: false,
+          headerRight: () => session ? (
+            <View style={{ marginRight: 10 }}>
+              <NotificationIcon />
+            </View>
+          ) : null,
         }}
         initialRouteName="SplashScreen"
       >
