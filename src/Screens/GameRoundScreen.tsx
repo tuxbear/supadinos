@@ -347,12 +347,12 @@ const GameRoundScreen = () => {
   const checkWinCondition = (x: number, y: number, color: string) => {
     if (!gameState || !gameState.current_board) return;
 
-    // Check if there's a target at this position matching the robot's color
-    const target = gameState.current_board.targets.find(
-      t => t.x === x && t.y === y && t.color === color
-    );
-
-    if (target) {
+    // Find the target (goal square) for this round
+    const target = gameState.current_board.targets.find(t => t.x === x && t.y === y);
+    
+    // Check if the robot that moved to this position is the designated one for the round
+    // (i.e., the one whose color matches the target's color)
+    if (target && target.color === color) {
       // Stop the timer
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -468,7 +468,9 @@ const GameRoundScreen = () => {
                   styles.target,
                   { backgroundColor: ROBOT_COLORS[target.color as keyof typeof ROBOT_COLORS] || '#ddd' }
                 ]}
-              />
+              >
+                <View style={styles.targetInner} />
+              </View>
             )}
             
             {/* Draw robot */}
@@ -877,6 +879,17 @@ const GameRoundScreen = () => {
       <View style={styles.gameInfo}>
         <Text style={styles.movesText}>Moves: {moves.length}</Text>
         <Text style={styles.timer}>Time: {formatTime(timer)}</Text>
+        {gameState?.current_board?.targets && gameState.current_board.targets.length > 0 && (
+          <View style={styles.goalInfo}>
+            <Text>Goal: </Text>
+            <View
+              style={[
+                styles.goalIndicator,
+                { backgroundColor: ROBOT_COLORS[gameState.current_board.targets[0].color as keyof typeof ROBOT_COLORS] || '#ddd' }
+              ]}
+            />
+          </View>
+        )}
         {selectedRobot && (
           <View style={styles.selectedRobotInfo}>
             <Text>Selected: </Text>
@@ -889,6 +902,19 @@ const GameRoundScreen = () => {
           </View>
         )}
       </View>
+      
+      {gameState?.current_board?.targets && gameState.current_board.targets.length > 0 && (
+        <View style={styles.instructionContainer}>
+          <Text style={styles.instructionText}>
+            Move the <Text style={{
+              color: ROBOT_COLORS[gameState.current_board.targets[0].color as keyof typeof ROBOT_COLORS] || '#ddd',
+              fontWeight: 'bold'
+            }}>
+              {gameState.current_board.targets[0].color}
+            </Text> dino to the target square to complete the round.
+          </Text>
+        </View>
+      )}
       
       {renderBoard()}
       
@@ -1029,13 +1055,21 @@ const styles = StyleSheet.create({
     left: CELL_SIZE * 0.15,
   },
   target: {
+    position: 'absolute',
+    width: CELL_SIZE,
+    height: CELL_SIZE,
+    borderRadius: CELL_SIZE / 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  targetInner: {
     width: CELL_SIZE * 0.5,
     height: CELL_SIZE * 0.5,
     borderRadius: CELL_SIZE * 0.25,
-    position: 'absolute',
-    top: CELL_SIZE * 0.25,
-    left: CELL_SIZE * 0.25,
-    opacity: 0.5,
+    backgroundColor: 'white',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.3)',
   },
   wall: {
     position: 'absolute',
@@ -1261,6 +1295,27 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     opacity: 0.8,
+  },
+  goalInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  goalIndicator: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  instructionContainer: {
+    marginBottom: 10,
+    padding: 10,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  instructionText: {
+    fontSize: 14,
+    color: '#333',
   },
 });
 
