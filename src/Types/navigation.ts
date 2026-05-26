@@ -13,4 +13,5 @@ export type RootStackParamList = {
   ChangePasswordScreen: undefined;
   GameRound: { gameId: string; roundId: string };
   GameDetails: { gameId: string };
+  RoundStatus: { gameId: string; roundId: string };
 }; 

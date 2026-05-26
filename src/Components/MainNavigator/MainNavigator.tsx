@@ -17,6 +17,7 @@ import FriendsScreen from '@screens/FriendsScreen';
 import ProfileScreen from '@screens/ProfileScreen';
 import SettingsScreen from '@screens/SettingsScreen';
 import GameDetailsScreen from '@screens/GameDetailsScreen';
+import RoundStatusScreen from '@screens/RoundStatusScreen';
 import NotificationIcon from '../NotificationIcon/NotificationIcon';
 import { View } from 'react-native';
 
@@ -65,6 +66,7 @@ const MainNavigator = () => {
             <Stack.Screen name="GamesList" component={GamesListScreen} options={{ headerShown: true, title: 'My Games' }} />
             <Stack.Screen name="CreateGame" component={CreateGameScreen} options={{ headerShown: true, title: 'Create New Game' }} />
             <Stack.Screen name="GameRound" component={GameRoundScreen} options={{ headerShown: true, title: 'Game Round' }} />
+            <Stack.Screen name="RoundStatus" component={RoundStatusScreen} options={{ headerShown: true, title: 'Round Status' }} />
             <Stack.Screen name="GameDetails" component={GameDetailsScreen} options={{ headerShown: true, title: 'Game Details' }} />
             <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: true }} />
             <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: true }} />

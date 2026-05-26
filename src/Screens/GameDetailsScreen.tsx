@@ -31,14 +31,22 @@ interface Round {
   round_number: number;
   winner_id: string | null;
   winning_moves: number | null;
+  completed_at: string | null;
 }
 
 interface RoundScore {
   participant_id: string;
   username: string;
   moves_count: number | null;
-  has_submitted: boolean;
+  time_seconds: number | null;
+  status: string;
   is_winner: boolean;
+  is_me: boolean;
+}
+
+interface RoundStandings {
+  round_status: 'active' | 'completed';
+  players: RoundScore[];
 }
 
 interface GameMessage {
@@ -149,61 +157,34 @@ const GameDetailsScreen = () => {
       }));
       setParticipants(formattedParticipants);
 
-      // Load rounds
       const { data: roundsData, error: roundsError } = await supabase
         .from('rounds')
-        .select('id, round_number, winner_id, winning_moves')
+        .select('id, round_number, winner_id, winning_moves, completed_at')
         .eq('game_id', gameId)
         .order('round_number');
 
       if (roundsError) throw roundsError;
       setRounds(roundsData);
 
-      // Load moves by round and participant
       const roundScoresObj: Record<string, RoundScore[]> = {};
-      
-      // Initialize round scores for all rounds and participants
-      roundsData.forEach((round: Round) => {
-        roundScoresObj[round.id] = formattedParticipants.map(p => ({
-          participant_id: p.id,
+
+      for (const round of roundsData || []) {
+        const { data: standings, error: standingsError } = await supabase.rpc(
+          'get_round_standings',
+          { p_round_id: round.id }
+        );
+
+        if (standingsError) throw standingsError;
+
+        const parsed = standings as RoundStandings;
+        roundScoresObj[round.id] = (parsed.players || []).map((p) => ({
+          participant_id: p.participant_id,
           username: p.username,
-          moves_count: null,
-          has_submitted: false,
-          is_winner: round.winner_id === p.id
-        }));
-      });
-
-      // Get moves for each round
-      for (const round of roundsData) {
-        const { data: movesData, error: movesError } = await supabase
-          .from('moves')
-          .select(`
-            participant_id,
-            move_number
-          `)
-          .eq('round_id', round.id)
-          .order('participant_id')
-          .order('move_number', { ascending: false });
-
-        if (movesError) throw movesError;
-
-        // Group by participant to get max move number (total moves)
-        const participantMoves: Record<string, number> = {};
-        const participantsWithMoves = new Set<string>();
-        
-        movesData.forEach((move: any) => {
-          participantsWithMoves.add(move.participant_id);
-          participantMoves[move.participant_id] = Math.max(
-            move.move_number, 
-            participantMoves[move.participant_id] || 0
-          );
-        });
-
-        // Update round scores
-        roundScoresObj[round.id] = roundScoresObj[round.id].map(score => ({
-          ...score,
-          moves_count: participantMoves[score.participant_id] || null,
-          has_submitted: participantsWithMoves.has(score.participant_id)
+          moves_count: p.moves_count,
+          time_seconds: p.time_seconds,
+          status: p.status,
+          is_winner: p.is_winner,
+          is_me: p.is_me,
         }));
       }
 
@@ -392,21 +373,35 @@ const GameDetailsScreen = () => {
                       const participantScore = roundScores[round.id]?.find(
                         (s) => s.participant_id === participant.id
                       );
-                      
+                      const roundComplete = Boolean(round.completed_at);
+                      const showStats =
+                        roundComplete ||
+                        (participantScore?.is_me &&
+                          participantScore?.status === 'submitted');
+
                       return (
                         <View key={`${participant.id}-${round.id}`} style={styles.roundCell}>
-                          {participantScore?.has_submitted ? (
+                          {showStats && participantScore?.status === 'submitted' ? (
                             <View>
-                              <Text style={[
-                                styles.movesText,
-                                participantScore.is_winner && styles.winnerText
-                              ]}>
+                              <Text
+                                style={[
+                                  styles.movesText,
+                                  participantScore.is_winner && styles.winnerText,
+                                ]}
+                              >
                                 {participantScore.moves_count} moves
                               </Text>
                               {participantScore.is_winner && (
                                 <Ionicons name="trophy" size={16} color="#FFD700" />
                               )}
                             </View>
+                          ) : participantScore?.status === 'forfeited' ? (
+                            <Text style={styles.pendingText}>Out</Text>
+                          ) : participantScore?.status === 'submitted' ||
+                            participantScore?.status === 'playing' ? (
+                            <Text style={styles.pendingText}>
+                              {participantScore.is_me ? '…' : 'Playing'}
+                            </Text>
                           ) : (
                             <Text style={styles.pendingText}>-</Text>
                           )}
@@ -446,7 +441,7 @@ const GameDetailsScreen = () => {
                     >
                       <Ionicons name="play-circle" size={20} color="white" />
                       <Text style={styles.actionButtonText}>
-                        {roundScores[item.id]?.find(s => s.participant_id === participants[0]?.id)?.has_submitted 
+                        {roundScores[item.id]?.find((s) => s.is_me)?.status === 'submitted'
                           ? 'View Round' 
                           : 'Play Round'}
                       </Text>

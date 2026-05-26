@@ -61,6 +61,17 @@ const GamesListScreen = () => {
   const loadGames = async () => {
     setLoading(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!profile) return;
+
       const { data, error } = await supabase
         .from('games')
         .select(`
@@ -70,9 +81,10 @@ const GamesListScreen = () => {
           max_rounds, 
           created_at,
           profiles:created_by (username),
-          game_participants:game_participants (id),
+          game_participants!inner (id, profile_id),
           rounds:rounds (id, round_number, completed_at)
         `)
+        .eq('game_participants.profile_id', profile.id)
         .order('created_at', { ascending: false });
 
       if (error) {

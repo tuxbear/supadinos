@@ -1,9 +1,37 @@
 ---
 description: game logic
-globs: 
+globs:
 alwaysApply: false
 ---
-The app is a game, emulating the board game ricchocet robots.
-Players can invite friends to a multi-round game of Dinos.
-The goal of each round is to be the player who can get the designated dino to the goal square in the least number of dino moves.
-Each round the winner is awareded 1 point for having the least moves. A game is over when all players ahs submitted moves for each round. The winner is the player with the most points across all rounds.
+# Desperate Dinos (Ricochet Robots-style)
+
+## Overview
+Async multiplayer puzzle game. Each round shares one board layout; players solve independently within a time limit.
+
+## Movement
+- 16×16 grid, 4 colored dinos, walls, one goal cell per round.
+- Tap a dino, then tap a cell in a cardinal direction; the dino slides until blocked.
+- Each slide is one move.
+- The dino matching the goal color must reach the goal to submit.
+
+## Scoring
+- Round winner: fewest moves; tie-break by fastest solve time (`time_spent_seconds`).
+- Round winner earns +1 point on the game scoreboard.
+- Forfeit/timeout counts as not winning the round.
+
+## Rounds and timing
+- Games have N rounds (`max_rounds`, typically 5–15).
+- Creator sets **time per round in hours** (stored as seconds: hours × 3600; default 24h).
+- Each player calls `start_player_round` when entering the round; clock starts per player.
+- Round closes when all players submit or forfeit; results are then revealed to everyone.
+
+## Privacy
+- During an **active** round: opponents see only status (playing / finished / timed out), not move counts or times.
+- After round `completed_at`: all players see full standings for that round.
+- Cumulative game scores remain visible on the game details screen.
+
+## Notifications
+- Invited to a game
+- Another player finished the current round (no move count in message)
+- Round results ready for all players
+- Game over

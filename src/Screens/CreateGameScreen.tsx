@@ -29,6 +29,8 @@ const CreateGameScreen = () => {
   const navigation = useNavigation();
   const [gameName, setGameName] = useState('');
   const [maxRounds, setMaxRounds] = useState('10');
+  const [roundTimeHours, setRoundTimeHours] = useState('24');
+  const ROUND_TIME_OPTIONS = ['6', '12', '24', '48', '72'];
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -99,10 +101,12 @@ const CreateGameScreen = () => {
 
     setCreating(true);
     try {
-      const { data, error } = await supabase.rpc('create_game_with_friends', {
+      const hours = parseInt(roundTimeHours, 10) || 24;
+      const { error } = await supabase.rpc('create_game_with_friends', {
         game_name: gameName.trim(),
         max_rounds: parsedMaxRounds,
-        friend_ids: selectedFriendIds
+        friend_ids: selectedFriendIds,
+        round_time_limit_seconds: hours * 3600,
       });
 
       if (error) {
@@ -182,6 +186,28 @@ const CreateGameScreen = () => {
           maxLength={2}
         />
       </View>
+
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>Time per round (hours)</Text>
+        <View style={styles.timeOptionsRow}>
+          {ROUND_TIME_OPTIONS.map((h) => (
+            <TouchableOpacity
+              key={h}
+              style={[styles.timeOption, roundTimeHours === h && styles.timeOptionSelected]}
+              onPress={() => setRoundTimeHours(h)}
+            >
+              <Text
+                style={[
+                  styles.timeOptionText,
+                  roundTimeHours === h && styles.timeOptionTextSelected,
+                ]}
+              >
+                {h}h
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
       
       <View style={styles.formGroup}>
         <Text style={styles.label}>
@@ -253,6 +279,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
   },
+  timeOptionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  timeOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+  },
+  timeOptionSelected: {
+    backgroundColor: '#4c669f',
+    borderColor: '#4c669f',
+  },
+  timeOptionText: { color: '#333', fontWeight: '600' },
+  timeOptionTextSelected: { color: '#fff' },
   friendsList: {
     maxHeight: 300,
     backgroundColor: 'white',

@@ -19,7 +19,13 @@ import { RootStackParamList } from '../../Types/navigation';
 
 interface Notification {
   id: string;
-  type: 'new_game' | 'moves_submitted' | 'round_over' | 'game_over';
+  type:
+    | 'new_game'
+    | 'moves_submitted'
+    | 'round_over'
+    | 'game_over'
+    | 'player_finished_round'
+    | 'round_results_ready';
   message: string;
   game_id: string | null;
   round_id: string | null;
@@ -33,8 +39,10 @@ const getNotificationIcon = (type: string) => {
     case 'new_game':
       return 'game-controller';
     case 'moves_submitted':
+    case 'player_finished_round':
       return 'checkmark-circle';
     case 'round_over':
+    case 'round_results_ready':
       return 'flag';
     case 'game_over':
       return 'trophy';
@@ -48,8 +56,10 @@ const getTypeColor = (type: string) => {
     case 'new_game':
       return '#4c669f';
     case 'moves_submitted':
+    case 'player_finished_round':
       return '#5cb85c';
     case 'round_over':
+    case 'round_results_ready':
       return '#f0ad4e';
     case 'game_over':
       return '#d9534f';
@@ -139,11 +149,21 @@ const NotificationIcon = () => {
     
     // Navigate based on notification type
     if (notification.game_id) {
-      if (notification.round_id && (notification.type === 'moves_submitted' || notification.type === 'round_over')) {
-        // Navigate to specific round
-        navigation.navigate('GameRound', {
+      if (
+        notification.round_id &&
+        notification.type === 'player_finished_round'
+      ) {
+        navigation.navigate('RoundStatus', {
           gameId: notification.game_id,
-          roundId: notification.round_id
+          roundId: notification.round_id,
+        });
+      } else if (
+        notification.round_id &&
+        (notification.type === 'round_results_ready' || notification.type === 'round_over')
+      ) {
+        navigation.navigate('RoundStatus', {
+          gameId: notification.game_id,
+          roundId: notification.round_id,
         });
       } else {
         // Navigate to game details

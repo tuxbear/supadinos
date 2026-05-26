@@ -1,117 +1,64 @@
-# 🚀 SUPABASE REACT NATIVE STARTER KIT 🎉
+# Desperate Dinos
 
-### 1. Introduction 📖  
-Welcome to the **Supabase React Native Starter Kit**, your ultimate toolkit for building apps with speed and ease! 🛠️ Built on the powerful [Expo](https://expo.io/) platform, this starter kit combines modern tools and technologies to help you kickstart your [React Native](https://reactnative.dev/) project with [Supabase](https://supabase.io/). 💡  
+Async multiplayer mobile puzzle game (Expo + Supabase), inspired by Ricochet Robots.
 
-**Tech Stack includes:**  
-- ⚛️ [React Native](https://reactnative.dev/)  
-- 🌟 [Expo](https://expo.io/)  
-- 🔥 [Supabase](https://supabase.io/)  
-- 🧭 [React Navigation](https://reactnavigation.org/)  
-- ✉️ [Resend](https://resend.com)  
+## Stack
 
----
+- React Native (Expo 52)
+- Supabase (Auth, Postgres, Realtime, Edge Functions)
+- React Navigation
 
-### 2. Features 🧩  
-Here’s what you get out of the box with this starter kit:  
-- **🔑 Authentication**: Fully integrated sign-up/sign-in using [Supabase](https://supabase.io/).  
-- **🛤️ Navigation**: Pre-configured and smooth navigation with [React Navigation](https://reactnavigation.org/).  
-- **📧 Email Verification**: Ensure users validate their emails with [Resend](https://resend.com).  
-- **👤 Profile**: A sleek profile screen for updating and viewing user information.  
+## Setup
 
----
+1. Install dependencies:
 
-### 3. Installation ⚡  
-Ready to dive in? Follow these steps to get started:  
-
-1️⃣ **Clone the repository**:  
-```bash
-git clone https://github.com/Jaseyacey/react-native-supa-starter.git
-```  
-
-2️⃣ **Install dependencies**:  
 ```bash
 yarn install
-```  
+```
 
-3️⃣ **Set up Supabase**:  
-- 🌐 Head to [Supabase](https://supabase.io/) and create an account.  
-- 🔑 Create a new project and grab the URL + API keys.  
-- 🔐 Create a new table called `users` with the following columns:  
-  - `user_uuid` (UUID)  
-  - `user_email` (TEXT)  
-  - `created_at` (TIMESTAMP)  
+2. Configure environment (`.env` or Expo env):
 
-4️⃣ **Configure Supabase**:  
-Add these variables to a `.env` file in your project’s root:  
 ```bash
-EXPO_PUBLIC_SUPABASE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
-SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SECRET_KEY
-EXPO_PUBLIC_SUPABASE_URL=YOUR_SUPABASE_SERVICE_URL
-JWT_SECRET=YOUR_JWT_SECRET
-```  
+EXPO_PUBLIC_SUPABASE_URL=your_project_url
+EXPO_PUBLIC_SUPABASE_KEY=your_anon_key
+```
 
-5️⃣ **Set up Resend**:  
-- ✉️ Create an account at [Resend](https://resend.com).  
-- 🔑 Grab your API key and add it to the `.env` file:  
+3. Apply database migrations:
+
 ```bash
-EXPO_PUBLIC_RESEND_API_KEY=YOUR_RESEND_API_KEY
-```  
+supabase db push
+```
 
-6️⃣ **Run the app**:  
+4. (Optional) Deploy push edge function:
+
+```bash
+supabase functions deploy send-push
+```
+
+5. Run the app:
+
 ```bash
 yarn start
-```  
+```
 
-🎉 Boom! Your app is live!  
+## Game flow
 
----
+1. Sign up / sign in
+2. Add friends
+3. Create a game (rounds, hours per round, invite friends)
+4. Friends open the game from **My Games** (invited players only)
+5. Creator starts when 2+ players are ready
+6. Each player plays each round within the time limit; opponent round stats stay hidden until the round ends
+7. Notifications when others finish and when round results are ready
 
-### 4. Usage 📱  
-Here’s how to use the app:  
+## Tests
 
-1️⃣ **Sign up**:  
-- Click the `Sign Up` button.  
-- Enter your email and password.  
-- Check your inbox 📩, and click the verification link.  
+```bash
+yarn test
+```
 
-2️⃣ **Sign in**:  
-- Click the `Sign In` button.  
-- Enter your email and password to log in. ✅  
+Unit tests cover Ricochet movement logic in `src/game/ricochetMovement.test.ts`.
 
----
+## Migrations
 
-### 5. License 📜  
-This starter kit is licensed under the [MIT License](https://opensource.org/licenses/MIT). Feel free to use it however you like! 🌈  
-
----
-
-### 6. Contributing 🤝  
-We ❤️ contributions! Follow these steps to get involved:  
-
-1️⃣ Fork the repository 🍴  
-2️⃣ Create a new branch 🌿  
-3️⃣ Create an issue in the [Project](https://github.com/users/Jaseyacey/projects/4), then use the issue name as the 🌿 name  
-4️⃣ Make your changes ✍️  
-5️⃣ Commit your changes 📦  
-6️⃣ Push your branch 🚢  
-7️⃣ Open a pull request 🚀  
-8️⃣ Wait for review and merge! 🎉  
-
----
-
-### 7. Acknowledgements 🙌  
-Big shoutout to these awesome tools that make this starter kit possible:  
-- ⚛️ [React Native](https://reactnative.dev/)  
-- 🌟 [Expo](https://expo.io/)  
-- 🔥 [Supabase](https://supabase.io/)  
-- 🧭 [React Navigation](https://reactnavigation.org/)  
-- ✉️ [Resend](https://resend.com)  
-
----
-
-### 8. Contact 📬  
-Got questions or feedback? Let’s chat! 💬  
-📧 **Email**: [Jason Beedle](mailto:jbeedle@gmail.com)  
-
---- 
+Game schema and RPCs live under `supabase/migrations/`. The latest migration adds privacy RLS, hour-based round limits, move validation, and notification fixes.

@@ -14,6 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import supabase from '@config/supabase';
 import { RootStackParamList } from '../Types/navigation';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import {
+  calculateRobotMove,
+  checkWinCondition as checkTargetWin,
+} from '../game/ricochetMovement';
+import BoardCell from '../Components/Board/BoardCell';
 
 // Define the screen dimensions
 const { width } = Dimensions.get('window');
@@ -109,9 +114,12 @@ const GameRoundScreen = () => {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [moves, setMoves] = useState<Move[]>([]);
-  const [timer, setTimer] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [timeLimitSeconds, setTimeLimitSeconds] = useState(86400);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const gameStartedRef = useRef(false);
+  const hasSubmittedRef = useRef(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [replayVisible, setReplayVisible] = useState(false);
   const [selectedRound, setSelectedRound] = useState<string | null>(null);
@@ -163,10 +171,24 @@ const GameRoundScreen = () => {
 
       setGameState(gameStateData);
 
-      // Start the timer if round is active and not already started
+      const { data: roundRow } = await supabase
+        .from('rounds')
+        .select('time_limit_seconds, completed_at')
+        .eq('id', roundId)
+        .single();
+
+      if (roundRow?.time_limit_seconds) {
+        setTimeLimitSeconds(roundRow.time_limit_seconds);
+      }
+
+      if (roundRow?.completed_at) {
+        navigation.replace('RoundStatus', { gameId, roundId });
+        return;
+      }
+
       const roundData = gameStateData?.current_board;
       if (roundData && !gameStartedRef.current) {
-        startRound();
+        await startPlayerRound();
         gameStartedRef.current = true;
       }
     } catch (error) {
@@ -177,34 +199,63 @@ const GameRoundScreen = () => {
     }
   };
 
-  const startRound = async () => {
+  const startPlayerRound = async () => {
     try {
-      // Start the round in the database
-      const { error } = await supabase.rpc('start_round', {
-        round_id: roundId
+      const { error } = await supabase.rpc('start_player_round', {
+        round_id: roundId,
       });
 
       if (error) {
         throw error;
       }
 
-      // Start the timer
       startTimer();
     } catch (error) {
       console.error('Error starting round:', error);
+      Alert.alert('Error', 'Could not start your round timer');
     }
   };
 
+  const handleTimeExpired = async () => {
+    if (hasSubmittedRef.current) return;
+    hasSubmittedRef.current = true;
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    try {
+      await supabase.rpc('forfeit_round', { round_id: roundId });
+    } catch (error) {
+      console.error('Forfeit error:', error);
+    }
+
+    Alert.alert('Time Up', 'Your time for this round has expired.', [
+      {
+        text: 'OK',
+        onPress: () => navigation.replace('RoundStatus', { gameId, roundId }),
+      },
+    ]);
+  };
+
   const startTimer = () => {
-    // Start a timer that increments every second
+    const startedAt = Date.now();
     timerRef.current = setInterval(() => {
-      setTimer(prevTimer => prevTimer + 1);
+      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+      setElapsedSeconds(elapsed);
+      const remaining = timeLimitSeconds - elapsed;
+      setRemainingSeconds(remaining);
+      if (remaining <= 0) {
+        handleTimeExpired();
+      }
     }, 1000);
   };
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const abs = Math.max(0, Math.abs(seconds));
+    const hrs = Math.floor(abs / 3600);
+    const mins = Math.floor((abs % 3600) / 60);
+    const secs = abs % 60;
+    if (hrs > 0) {
+      return `${hrs}h ${mins.toString().padStart(2, '0')}m`;
+    }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -263,111 +314,32 @@ const GameRoundScreen = () => {
       toX: finalX,
       toY: finalY
     };
-    setMoves([...moves, newMove]);
+    const updatedMoves = [...moves, newMove];
+    setMoves(updatedMoves);
 
-    // Update the selected robot
     setSelectedRobot({ ...robot, x: finalX, y: finalY });
 
-    // Check if the robot has reached the target
-    checkWinCondition(finalX, finalY, robot.color);
+    checkWinCondition(finalX, finalY, robot.color, updatedMoves.length);
   };
 
-  const calculateRobotMove = (
-    robot: Robot, 
-    targetX: number, 
-    targetY: number, 
-    robots: Robot[], 
-    walls: Wall[]
-  ) => {
-    // Implementation of robot movement logic
-    // This is a simplified version - in a real game, you'd need to implement
-    // the exact movement rules of Desperate Dinos
-
-    // Determine direction of movement
-    let dirX = 0;
-    let dirY = 0;
-
-    if (targetX !== robot.x) {
-      dirX = targetX > robot.x ? 1 : -1;
-    } else if (targetY !== robot.y) {
-      dirY = targetY > robot.y ? 1 : -1;
-    } else {
-      // Target is the same as current position
-      return { x: robot.x, y: robot.y };
-    }
-
-    // Move the robot until it hits a wall or another robot
-    let currentX = robot.x;
-    let currentY = robot.y;
-    let nextX = currentX;
-    let nextY = currentY;
-    let hitObstacle = false;
-
-    while (!hitObstacle) {
-      nextX = currentX + dirX;
-      nextY = currentY + dirY;
-
-      // Check if we hit the board edge
-      if (nextX < 1 || nextX > 16 || nextY < 1 || nextY > 16) {
-        hitObstacle = true;
-        break;
-      }
-
-      // Check if we hit a wall
-      const wallInDirection = walls.find(wall => {
-        if (dirX > 0 && wall.x === currentX && wall.y === currentY && wall.direction === 'east') return true;
-        if (dirX < 0 && wall.x === nextX && wall.y === nextY && wall.direction === 'east') return true;
-        if (dirY > 0 && wall.x === currentX && wall.y === currentY && wall.direction === 'south') return true;
-        if (dirY < 0 && wall.x === nextX && wall.y === nextY && wall.direction === 'south') return true;
-        return false;
-      });
-
-      if (wallInDirection) {
-        hitObstacle = true;
-        break;
-      }
-
-      // Check if we hit another robot
-      const robotInWay = robots.find(r => 
-        r.id !== robot.id && r.x === nextX && r.y === nextY
-      );
-
-      if (robotInWay) {
-        hitObstacle = true;
-        break;
-      }
-
-      // Move to the next position
-      currentX = nextX;
-      currentY = nextY;
-    }
-
-    return { x: currentX, y: currentY };
-  };
-
-  const checkWinCondition = (x: number, y: number, color: string) => {
+  const checkWinCondition = (x: number, y: number, color: string, moveCount: number) => {
     if (!gameState || !gameState.current_board) return;
 
-    // Find the target (goal square) for this round
-    const target = gameState.current_board.targets.find(t => t.x === x && t.y === y);
-    
-    // Check if the robot that moved to this position is the designated one for the round
-    // (i.e., the one whose color matches the target's color)
-    if (target && target.color === color) {
-      // Stop the timer
+    const won = checkTargetWin(x, y, color, gameState.current_board.targets);
+
+    if (won) {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
 
-      // Alert the user and submit solution
       Alert.alert(
         'Congratulations!',
-        `You solved the puzzle in ${moves.length} moves and ${formatTime(timer)}!`,
+        `You solved the puzzle in ${moveCount} moves and ${formatTime(elapsedSeconds)}!`,
         [
           {
             text: 'Submit Solution',
-            onPress: () => submitSolution()
-          }
+            onPress: () => submitSolution(),
+          },
         ]
       );
     }
@@ -379,26 +351,27 @@ const GameRoundScreen = () => {
     setSubmitting(true);
     try {
       // Format the moves for submission
-      const movesJson = moves.map((move, index) => ({
+      const movesJson = moves.map((move) => ({
         color: move.robotColor,
         from_x: move.fromX,
         from_y: move.fromY,
         to_x: move.toX,
-        to_y: move.toY
+        to_y: move.toY,
       }));
 
-      // Submit the solution
+      hasSubmittedRef.current = true;
+      if (timerRef.current) clearInterval(timerRef.current);
+
       const { error } = await supabase.rpc('submit_solution', {
-        round_uuid: roundId,
-        moves_json: JSON.stringify(movesJson)
+        round_id: roundId,
+        moves_json: movesJson,
       });
 
       if (error) {
         throw error;
       }
 
-      // Navigate back to the game list or next round
-      navigation.navigate('GamesList');
+      navigation.replace('RoundStatus', { gameId, roundId });
     } catch (error: any) {
       console.error('Error submitting solution:', error);
       Alert.alert('Error', error.message || 'Failed to submit solution');
@@ -448,41 +421,13 @@ const GameRoundScreen = () => {
             ]}
             onPress={() => handleCellPress(x, y)}
           >
-            {/* Draw walls */}
-            {cellWalls.map(wall => (
-              <View
-                key={wall.id}
-                style={[
-                  styles.wall,
-                  wall.direction === 'north' && styles.northWall,
-                  wall.direction === 'east' && styles.eastWall,
-                  wall.direction === 'south' && styles.southWall,
-                  wall.direction === 'west' && styles.westWall
-                ]}
-              />
-            ))}
-            
-            {/* Draw target */}
-            {target && (
-              <View
-                style={[
-                  styles.target,
-                  { backgroundColor: ROBOT_COLORS[target.color as keyof typeof ROBOT_COLORS] || '#ddd' }
-                ]}
-              >
-                <View style={styles.targetInner} />
-              </View>
-            )}
-            
-            {/* Draw robot */}
-            {robot && (
-              <View
-                style={[
-                  styles.robot,
-                  { backgroundColor: ROBOT_COLORS[robot.color as keyof typeof ROBOT_COLORS] || '#ddd' }
-                ]}
-              />
-            )}
+            <BoardCell
+              size={CELL_SIZE}
+              robotColor={robot?.color}
+              targetColor={target?.color}
+              walls={cellWalls.map((w) => ({ direction: w.direction }))}
+              isSelected={Boolean(selectedRobot && robot && robot.id === selectedRobot.id)}
+            />
           </TouchableOpacity>
         );
       }
@@ -879,7 +824,11 @@ const GameRoundScreen = () => {
       
       <View style={styles.gameInfo}>
         <Text style={styles.movesText}>Moves: {moves.length}</Text>
-        <Text style={styles.timer}>Time: {formatTime(timer)}</Text>
+        <Text style={styles.timer}>
+          {remainingSeconds !== null
+            ? `Time left: ${formatTime(remainingSeconds)}`
+            : `Elapsed: ${formatTime(elapsedSeconds)}`}
+        </Text>
         {gameState?.current_board?.targets && gameState.current_board.targets.length > 0 && (
           <View style={styles.goalInfo}>
             <Text>Goal: </Text>

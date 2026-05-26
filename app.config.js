@@ -1,4 +1,4 @@
-import 'dotenv/config';
+
 
 export default {
   expo: {
@@ -13,6 +13,15 @@ export default {
       resizeMode: "contain",
       backgroundColor: "#ffffff"
     },
+    plugins: [
+      [
+        "expo-notifications",
+        {
+          icon: "./assets/icon.png",
+          color: "#3498db"
+        }
+      ]
+    ],
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.tuxbear.supabasestartertemplate",
